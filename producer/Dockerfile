@@ -1,5 +1,6 @@
 FROM python:3.11.6-bookworm
-COPY . requirements.txt ./
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+COPY . /usr/src/app/
 RUN pip install --no-cache-dir -r requirements.txt
-COPY . producer.py ./
-CMD [ "python","-u","./producer.py" ]
+CMD [ "python","-u","./main.py" ]

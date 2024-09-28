@@ -1,4 +1,7 @@
-version: '2'
+networks:
+  sb:
+    driver: bridge
+
 services:
   zookeeper:
     image: wurstmeister/zookeeper
@@ -31,30 +34,65 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       ALLOW_PLAINTEXT_LISTENER: yes
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-      KAFKA_CREATE_TOPICS: "pricein:1:1"
+      KAFKA_CREATE_TOPICS: "${KAFKA_TOPIC}:1:1"
       #KAFKA_LOG_RETENTION_HOURS: 1
       #KAFKA_LOG_RETENTION_BYTES: 4073741824
       #KAFKA_LOG_SEGMENT_BYTES: 1073741824
       #KAFKA_RETENTION_CHECK_INTERVAL_MS: 300000
     #restart: unless-stopped
 
-  python-consumer:
-      build: ./consumer
-      container_name: consumer
-      depends_on:
-        - kafka
-      networks:
-        - sb
-      #restart: unless-stopped
+  #python-consumer:
+  #    build:
+  #      context: ./consumer
+  #      dockerfile: Dockerfile
+  #    container_name: consumer
+  #    environment:
+  #      KAFKA_TOPIC: ${KAFKA_TOPIC}
+  #    depends_on:
+  #      - kafka
+  #    networks:
+  #      - sb
+  #    #restart: unless-stopped
   python-producer:
-      build: ./producer
+      build:
+        context: ./producer
+        dockerfile: Dockerfile
       container_name: producer
+      environment:
+        KAFKA_TOPIC: ${KAFKA_TOPIC}
       depends_on:
         - kafka
       networks:
         - sb
       #restart: unless-stopped
 
-networks:
-  sb:
-    driver: bridge
+  flink-jobmanager:
+    image: pyflink:latest
+    container_name: flink-jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    volumes:
+      - ./flink_consumer/src:/opt/flink/usrlib/artifacts/
+    networks:
+      - sb
+
+  flink-taskmanager:
+    image: pyflink:latest
+    container_name: flink-taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    depends_on:
+      - flink-jobmanager
+    command: taskmanager
+    scale: 1
+    networks:
+      - sb
+
