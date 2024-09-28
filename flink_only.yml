@@ -1,0 +1,33 @@
+networks:
+  sb:
+    driver: bridge
+
+services:
+  flink-jobmanager:
+    image: pyflink:latest
+    container_name: flink-jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    networks:
+      - sb
+
+  flink-taskmanager:
+    image: pyflink:latest
+    container_name: flink-taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    depends_on:
+      - flink-jobmanager
+    command: taskmanager
+    scale: 1
+    networks:
+      - sb
+
