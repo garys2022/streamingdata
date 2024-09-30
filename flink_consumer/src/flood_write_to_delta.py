@@ -31,17 +31,12 @@ from datetime import datetime
 
 
 def read_from_kafka(env: StreamExecutionEnvironment):
-    deserialization_schema = JsonRowDeserializationSchema.Builder() \
-        .type_info(Types.ROW_NAMED(
-        ["@context", "items"],
-        [Types.STRING(), Types.STRING()]
-    )) \
-        .build()
-
-    brokers = 'kafka:9092'
+    brokers = os.getenv('KAFKA_ADDRESS')
+    read_from_topic = os.getenv('KAFKA_TOPIC')
+    sink_to_topic = os.getenv('KAFKA_SICK_TOPIC')
     source = KafkaSource.builder() \
         .set_bootstrap_servers(brokers) \
-        .set_topics("mytopic") \
+        .set_topics(read_from_topic) \
         .set_group_id("my-group") \
         .set_starting_offsets(KafkaOffsetsInitializer.earliest()) \
         .set_value_only_deserializer(SimpleStringSchema()) \
@@ -54,17 +49,56 @@ def read_from_kafka(env: StreamExecutionEnvironment):
         items = json_data['items']
         return Row(station_reference=items['stationReference'],
                    river_name=items['riverName'],
-                   create_at=datetime.now())
-        #return Row(items['stationReference'], items['riverName'], [json.dumps(measure) for measure in items['measures']])
+                   created_at=datetime.now(),
+                   measures=items['measures'])
 
-    #ds = ds.map(parse_json, output_type=Types.ROW([Types.STRING(), Types.STRING(), Types.LIST(Types.STRING())]))
-    ds = ds.map(parse_json, output_type=Types.ROW([Types.STRING(), Types.STRING(), Types.SQL_TIMESTAMP()]))
-    ds.print()
+    def prase_list(data: Row) -> Row:
+        for measure in data['measures']:
+            yield Row(
+                station_reference=data['station_reference'],
+                river_name=data['river_name'],
+                created_at=data['created_at'],
+                notation=measure['notation'],
+                parameter_name=measure['parameterName'],
+                qualifier=measure['qualifier'],
+                value_id=measure['latestReading']['@id'],
+                value=measure['latestReading']['value'],
+                value_datatime=datetime.strptime(measure['latestReading']['dateTime'], "%Y-%m-%dT%H:%M:%S%z"),
+                unitname=measure['unitName']
+            )
+
+    types = Types.ROW_NAMED(
+            field_names=['station_reference', 'river_name', 'created_at', 'notation', 'parameter_name', 'qualifier',
+                         'value_id', 'value', 'value_datatime', 'unitname']
+            , field_types=[
+                Types.STRING(),
+                Types.STRING(),
+                Types.SQL_TIMESTAMP(),
+                Types.STRING(),
+                Types.STRING(),
+                Types.STRING(),
+                Types.STRING(),
+                Types.DOUBLE(),
+                Types.SQL_TIMESTAMP(),
+                Types.STRING()
+            ])
+
+    ds = ds.map(parse_json,
+                output_type=Types.ROW(
+                    [Types.STRING(), Types.STRING(), Types.SQL_TIMESTAMP(), Types.LIST(Types.STRING())])) \
+        .flat_map(prase_list,
+                  output_type=types)
+
+    serialization_schema = JsonRowSerializationSchema.builder().with_type_info(
+        type_info=types).build()
+
+    kafka_producer = FlinkKafkaProducer(
+        topic=sink_to_topic,
+        serialization_schema=serialization_schema,
+        producer_config={'bootstrap.servers': brokers, 'group.id': 'my-group'})
+
+    ds.add_sink(kafka_producer)
     env.execute()
-
-
-def write_to_delta(env):
-    pass
 
 
 if __name__ == '__main__':

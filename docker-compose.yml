@@ -34,7 +34,7 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       ALLOW_PLAINTEXT_LISTENER: yes
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-      KAFKA_CREATE_TOPICS: "${KAFKA_TOPIC}:1:1"
+      KAFKA_CREATE_TOPICS: "${KAFKA_TOPIC}:1:1,${KAFKA_SINK_TOPIC}:1:1"
       #KAFKA_LOG_RETENTION_HOURS: 1
       #KAFKA_LOG_RETENTION_BYTES: 4073741824
       #KAFKA_LOG_SEGMENT_BYTES: 1073741824
@@ -58,8 +58,8 @@ services:
         context: ./producer
         dockerfile: Dockerfile
       container_name: producer
-      environment:
-        KAFKA_TOPIC: ${KAFKA_TOPIC}
+      env_file:
+        - .env  # This file contains shared variables
       depends_on:
         - kafka
       networks:
@@ -69,6 +69,8 @@ services:
   flink-jobmanager:
     image: pyflink:latest
     container_name: flink-jobmanager
+    env_file:
+      - .env  # This file contains shared variables
     environment:
       - |
         FLINK_PROPERTIES=
@@ -84,6 +86,8 @@ services:
   flink-taskmanager:
     image: pyflink:latest
     container_name: flink-taskmanager
+    env_file:
+      - .env  # This file contains shared variables
     environment:
       - |
         FLINK_PROPERTIES=
@@ -96,3 +100,13 @@ services:
     networks:
       - sb
 
+  python-consumer:
+    image: consumer:latest
+    container_name: consumer
+    env_file:
+      - .env  # This file contains shared variables
+    depends_on:
+      - kafka
+    networks:
+      - sb
+    #restart: unless-stopped
