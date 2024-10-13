@@ -43,14 +43,14 @@ services:
 
   python-producer:
     image: python-producer:latest
-      container_name: producer
-      env_file:
-        - .env  # This file contains shared variables
-      depends_on:
-        - kafka
-      networks:
-        - sb
-      #restart: unless-stopped
+    container_name: producer
+    env_file:
+      - .env  # This file contains shared variables
+    depends_on:
+      - kafka
+    networks:
+      - sb
+    #restart: unless-stopped
 
   flink-jobmanager:
     image: pyflink:latest
