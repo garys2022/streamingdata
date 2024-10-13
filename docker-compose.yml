@@ -35,24 +35,12 @@ services:
       ALLOW_PLAINTEXT_LISTENER: yes
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_CREATE_TOPICS: "${KAFKA_TOPIC}:1:1,${KAFKA_SINK_TOPIC}:1:1"
-      #KAFKA_LOG_RETENTION_HOURS: 1
-      #KAFKA_LOG_RETENTION_BYTES: 4073741824
-      #KAFKA_LOG_SEGMENT_BYTES: 1073741824
-      #KAFKA_RETENTION_CHECK_INTERVAL_MS: 300000
+      KAFKA_LOG_RETENTION_HOURS: 1
+      KAFKA_LOG_RETENTION_BYTES: 4073741824
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_RETENTION_CHECK_INTERVAL_MS: 300000
     #restart: unless-stopped
 
-  #python-consumer:
-  #    build:
-  #      context: ./consumer
-  #      dockerfile: Dockerfile
-  #    container_name: consumer
-  #    environment:
-  #      KAFKA_TOPIC: ${KAFKA_TOPIC}
-  #    depends_on:
-  #      - kafka
-  #    networks:
-  #      - sb
-  #    #restart: unless-stopped
   python-producer:
       build:
         context: ./producer
@@ -74,12 +62,14 @@ services:
     environment:
       - |
         FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
+        jobmanager.rpc.address: flink-jobmanager
     ports:
       - "8081:8081"
     command: jobmanager
     volumes:
-      - ./flink_consumer/src:/opt/flink/usrlib/artifacts/
+      - ./flink_consumer/src:/opt/flink/usrlib/artifacts/python
+      - ./data:/opt/flink/usrlib/data/
+      - ./flink_consumer/myartifact/target:/opt/flink/usrlib/artifacts/java
     networks:
       - sb
 
@@ -91,16 +81,19 @@ services:
     environment:
       - |
         FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.data.port:6121
         taskmanager.numberOfTaskSlots: 2
     depends_on:
       - flink-jobmanager
     command: taskmanager
+    volumes:
+      - ./data2:/opt/flink/usrlib/data/
     scale: 1
     networks:
       - sb
 
-  python-consumer:
+  consumer:
     image: consumer:latest
     container_name: consumer
     env_file:

@@ -9,6 +9,5 @@ RUN pip3 install apache-flink==1.19.1
 # Install required file
 #ADD src/flood_write_to_delta.py /opt/flink/usrlib/artifacts/
 ADD ./lib /opt/flink/lib/
-RUN curl -L https://raw.githubusercontent.com/apache/flink/master/flink-python/pyflink/examples/table/word_count.py -o word_count.py
 #DD ./requirements.txt /opt/flink/usrlib/artifacts/
 #RUN pip3 install -r  /opt/flink/usrlib/artifacts/requirements.txt

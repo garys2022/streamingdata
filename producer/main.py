@@ -6,7 +6,6 @@ if __name__ == '__main__':
     kafka_server = "kafka:9092"
     topic = os.getenv('KAFKA_TOPIC')
     print(topic)
-    print('123')
     main_producer = Producer(
         server=kafka_server,
         topic=topic,

@@ -19,25 +19,24 @@ import logging
 import sys
 import os
 import json
+from datetime import datetime
 from pyflink.common import Types
 from pyflink.datastream import StreamExecutionEnvironment
-from pyflink.datastream.connectors.kafka import FlinkKafkaProducer, FlinkKafkaConsumer, KafkaSource, \
-    KafkaOffsetsInitializer
-from pyflink.datastream.formats.json import JsonRowSerializationSchema, JsonRowDeserializationSchema
+from pyflink.datastream.connectors.kafka import FlinkKafkaProducer, KafkaSource,KafkaOffsetsInitializer
+from pyflink.datastream.formats.json import JsonRowSerializationSchema
 from pyflink.common.watermark_strategy import WatermarkStrategy
 from pyflink.common.serialization import SimpleStringSchema
 from pyflink.common import Row
-from datetime import datetime
 
 
 def read_from_kafka(env: StreamExecutionEnvironment):
     brokers = os.getenv('KAFKA_ADDRESS')
     read_from_topic = os.getenv('KAFKA_TOPIC')
-    sink_to_topic = os.getenv('KAFKA_SICK_TOPIC')
+    sink_to_topic = os.getenv('KAFKA_SINK_TOPIC')
     source = KafkaSource.builder() \
         .set_bootstrap_servers(brokers) \
         .set_topics(read_from_topic) \
-        .set_group_id("my-group") \
+        .set_group_id("1") \
         .set_starting_offsets(KafkaOffsetsInitializer.earliest()) \
         .set_value_only_deserializer(SimpleStringSchema()) \
         .build()
@@ -98,24 +97,18 @@ def read_from_kafka(env: StreamExecutionEnvironment):
         producer_config={'bootstrap.servers': brokers, 'group.id': 'my-group'})
 
     ds.add_sink(kafka_producer)
-    env.execute()
+    env.execute('Read from my topic')
 
 
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(message)s")
 
     env = StreamExecutionEnvironment.get_execution_environment()
-    #env.set_python_requirements('')
     # Set Config
-    env.set_parallelism(1)
-
-    #Install dependency
-    #env.add_python_archive("venv.zip")
-    #env.get_config().set_python_executable("venv.zip/venv/bin/python")
-    env.add_jars("file:///opt/flink/lib/flink-sql-connector-kafka-3.2.0-1.19.jar")
-    env.add_jars("file:///opt/flink/lib/flink-connector-files-1.19.1.jar")
+    #env.set_parallelism(2)
+    #env.add_jars("file:///opt/flink/lib/flink-sql-connector-kafka-3.2.0-1.19.jar")
+    #env.add_jars("file:///opt/flink/lib/flink-connector-files-1.19.1.jar")
+    #env.add_classpaths("file:///opt/flink/lib/flink-sql-connector-kafka-3.2.0-1.19.jar","file:///opt/flink/lib/flink-connector-files-1.19.1.jar")
 
     print("start reading data from kafka")
     read_from_kafka(env)
-
-    #write_to_delta(env)
