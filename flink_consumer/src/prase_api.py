@@ -15,24 +15,28 @@
 #  See the License for the specific language governing permissions and
 # limitations under the License.
 ################################################################################
-import logging
-import sys
-import os
 import json
+import logging
+import os
+import sys
 from datetime import datetime
-from pyflink.common import Types
-from pyflink.datastream import StreamExecutionEnvironment
-from pyflink.datastream.connectors.kafka import FlinkKafkaProducer, KafkaSource,KafkaOffsetsInitializer
-from pyflink.datastream.formats.json import JsonRowSerializationSchema
-from pyflink.common.watermark_strategy import WatermarkStrategy
-from pyflink.common.serialization import SimpleStringSchema
+
 from pyflink.common import Row
+from pyflink.common import Types
+from pyflink.common.serialization import SimpleStringSchema
+from pyflink.common.watermark_strategy import WatermarkStrategy
+from pyflink.datastream import StreamExecutionEnvironment
+from pyflink.datastream.connectors.kafka import FlinkKafkaProducer, KafkaSource, KafkaOffsetsInitializer
+from pyflink.datastream.formats.json import JsonRowSerializationSchema
 
 
 def read_from_kafka(env: StreamExecutionEnvironment):
     brokers = os.getenv('KAFKA_ADDRESS')
     read_from_topic = os.getenv('KAFKA_TOPIC')
     sink_to_topic = os.getenv('KAFKA_SINK_TOPIC')
+    print('brokers', brokers)
+    print('source topic', read_from_topic)
+    print('sick topic', sink_to_topic)
     source = KafkaSource.builder() \
         .set_bootstrap_servers(brokers) \
         .set_topics(read_from_topic) \
@@ -94,7 +98,7 @@ def read_from_kafka(env: StreamExecutionEnvironment):
     kafka_producer = FlinkKafkaProducer(
         topic=sink_to_topic,
         serialization_schema=serialization_schema,
-        producer_config={'bootstrap.servers': brokers, 'group.id': 'my-group'})
+        producer_config={'bootstrap.servers': brokers})
 
     ds.add_sink(kafka_producer)
     env.execute('Read from my topic')

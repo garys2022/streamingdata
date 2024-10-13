@@ -1,5 +1,5 @@
 package sink.delta;
-
+import java.io.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.delta.flink.sink.DeltaSink;
@@ -30,8 +30,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import java.io.IOException;
 import java.sql.Timestamp;
 
-//package write_to_delta;
-
 public class KafkaToDelta {
     public static void main(String[] args) throws Exception {
 
@@ -44,6 +42,9 @@ public class KafkaToDelta {
         String kafkaTopic = params.get("KAFKA_SINK_TOPIC", "sink");
         String deltaTablePath = params.get("delta-table-path", "/opt/flink/usrlib/data");
 
+        System.out.println(kafkaServers);
+        System.out.println(kafkaTopic);
+        System.out.println(deltaTablePath);
         // 3. Define the schema using RowType
         RowType rowType = defineRowType();
 

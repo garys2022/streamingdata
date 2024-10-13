@@ -42,9 +42,7 @@ services:
     #restart: unless-stopped
 
   python-producer:
-      build:
-        context: ./producer
-        dockerfile: Dockerfile
+    image: python-producer:latest
       container_name: producer
       env_file:
         - .env  # This file contains shared variables
@@ -93,6 +91,7 @@ services:
     networks:
       - sb
 
+  #This consumer is a python container to read message from kafka for debugging purposes
   consumer:
     image: consumer:latest
     container_name: consumer
